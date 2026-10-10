@@ -1,0 +1,7 @@
+{
+  "name": "Guess The Word - Kids Word Puzzle",
+  "description": "An interactive, kid-friendly word guessing game with 200+ words, hints, sound effects, boss levels, and daily rewards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

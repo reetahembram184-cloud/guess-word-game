@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Guess The Word - Kids Word Puzzle</title>
+  <meta name="description" content="An interactive, kid-friendly word guessing game with 200+ words, hints, sound effects, boss levels, and daily rewards." />
+  <meta property="og:title" content="Guess The Word - Kids Word Puzzle" />
+  <meta property="og:description" content="An interactive, kid-friendly word guessing game with 200+ words, hints, sound effects, boss levels, and daily rewards." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            candy: {
+              yellow: '#FFDF00',
+              orange: '#FF8A00',
+              peach: '#FFE7D1',
+              cream: '#FFF9E6',
+              mint: '#4ECCA3',
+              berry: '#FF4D6D',
+              purple: '#7952DE',
+            }
+          },
+          keyframes: {
+            bounceCard: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.08)' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-8px)' },
+              '40%, 80%': { transform: 'translateX(8px)' }
+            },
+            popIn: {
+              '0%': { transform: 'scale(0.5)', opacity: '0' },
+              '70%': { transform: 'scale(1.2)' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            pulseBlink: {
+              '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+              '50%': { opacity: '0.4', transform: 'scale(0.96)' }
+            },
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' }
+            }
+          },
+          animation: {
+            bounceCard: 'bounceCard 0.4s ease-in-out',
+            shake: 'shake 0.45s ease-in-out',
+            popIn: 'popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            pulseBlink: 'pulseBlink 1.2s infinite ease-in-out',
+            floatSlow: 'floatSlow 2.5s infinite ease-in-out'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Quicksand:wght@600;700&display=swap');
+
+    body {
+      font-family: 'Fredoka', 'Quicksand', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+
+    /* 3D button press tactile feel */
+    .btn-3d {
+      transition: all 0.08s ease;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    /* Keyboard key style */
+    .key-btn {
+      touch-action: manipulation;
+      box-shadow: 0 3px 0 #CBD5E1;
+      transition: transform 0.08s ease, background-color 0.15s ease, box-shadow 0.08s ease;
+    }
+    .key-btn:active:not(:disabled) {
+      transform: translateY(2px) scale(0.92);
+      box-shadow: 0 1px 0 #94A3B8;
+    }
+    .key-btn.correct-pop {
+      background-color: #10B981 !important;
+      color: white !important;
+      box-shadow: 0 3px 0 #047857 !important;
+      animation: popIn 0.3s ease-out;
+    }
+    .key-btn.wrong-shake {
+      background-color: #EF4444 !important;
+      color: white !important;
+      box-shadow: 0 3px 0 #B91C1C !important;
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Missing box blinking dashed style */
+    .missing-box {
+      background-color: #FEF3C7;
+      border: 3px dashed #F59E0B;
+      position: relative;
+    }
+    .missing-box.active-box {
+      border-color: #D97706;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 8px 16px rgba(245, 158, 11, 0.2);
+      animation: pulseBlink 1.4s infinite ease-in-out;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #FCD34D;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-b from-amber-50 via-orange-50 to-amber-100 text-slate-800 min-h-screen flex flex-col justify-between overflow-x-hidden antialiased">
+  <!-- Confetti Canvas (Full Screen overlay) -->
+  <canvas id="confettiCanvas" class="pointer-events-none fixed inset-0 z-50 w-full h-full"></canvas>
+
+  <!-- Top Floating Floating Audio & Notification Toast -->
+  <div id="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2">
+    <span id="toastIcon">✨</span>
+    <span id="toastText">Bonus!</span>
+  </div>
+
+  <!-- Main Game Container (Mobile First Max Width) -->
+  <div class="w-full max-w-md mx-auto flex flex-col min-h-screen p-3 sm:p-4 justify-between select-none">
+    
+    <!-- HEADER BAR -->
+    <header class="w-full bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-md border-2 border-orange-100 flex items-center justify-between gap-2 mb-2">
+      <!-- Left: Level Badge -->
+      <div class="flex items-center gap-2">
+        <div class="bg-gradient-to-r from-orange-400 to-amber-500 text-white px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold tracking-wide shadow-sm flex items-center gap-1.5">
+          <span>⭐</span>
+          <span id="levelLabel">LVL 1/100</span>
+        </div>
+        <div id="bossPill" class="hidden bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-lg animate-pulse tracking-tight flex items-center gap-1 shadow-sm">
+          <span>👹</span> BOSS
+        </div>
+      </div>
+
+      <!-- Center: Score & Coins -->
+      <div class="flex items-center gap-3 text-xs sm:text-sm font-bold">
+        <!-- Coins -->
+        <div class="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200 text-amber-700 shadow-inner">
+          <span class="text-sm">🪙</span>
+          <span id="coinsCount" class="font-extrabold">30</span>
+        </div>
+        <!-- Score -->
+        <div class="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-xl border border-blue-200 text-blue-700">
+          <span class="text-xs">PTS</span>
+          <span id="scoreCount" class="font-extrabold">0</span>
+        </div>
+      </div>
+
+      <!-- Right: Lives, API Button & Sound Toggle -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Secret Black Box for API (3 clicks to open) -->
+        <button id="apiBtn" class="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-slate-900 hover:bg-black rounded-md cursor-pointer transition-all opacity-70 hover:opacity-100 flex items-center justify-center shrink-0 border border-slate-800 shadow-sm" type="button" aria-label="Black Box">
+          <span id="apiStatusDot" class="hidden"></span>
+        </button>
+        <div id="livesContainer" class="flex text-sm sm:text-base tracking-tight" title="Lives">
+          <span id="heart1" class="transition-transform duration-200">❤️</span>
+          <span id="heart2" class="transition-transform duration-200">❤️</span>
+          <span id="heart3" class="transition-transform duration-200">❤️</span>
+        </div>
+        <!-- Sound Mute -->
+        <button id="soundBtn" class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 flex items-center justify-center text-xs sm:text-sm font-bold transition" aria-label="Toggle Sound">
+          🔊
+        </button>
+        <!-- Info / Download / Help -->
+        <button id="menuBtn" class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 flex items-center justify-center text-xs sm:text-sm font-bold transition" aria-label="Menu and Standalone HTML">
+          ⚙️
+        </button>
+      </div>
+    </header>
+
+    <!-- CENTER GAMEPLAY AREA -->
+    <main class="flex-1 flex flex-col items-center justify-center py-2 space-y-3">
+      
+      <!-- Category & Streak Strip -->
+      <div class="flex items-center justify-between w-full px-1 text-xs font-bold text-orange-700/80">
+        <div class="flex items-center gap-1.5 bg-orange-100/70 px-3 py-1 rounded-full">
+          <span id="categoryEmoji">🐾</span>
+          <span id="categoryName" class="tracking-wide uppercase">Animals</span>
+        </div>
+        <div id="streakBadge" class="flex items-center gap-1 bg-amber-100/80 px-2.5 py-1 rounded-full text-amber-800">
+          <span>🔥</span>
+          <span id="streakCount">1 Day Streak</span>
+        </div>
+      </div>
+
+      <!-- Clue Card (Emoji + Hint Text) -->
+      <div class="w-full bg-white rounded-3xl p-4 sm:p-5 shadow-lg border-2 border-orange-100 text-center relative overflow-hidden transition-all duration-300">
+        <!-- Background decorative soft bubbles -->
+        <div class="absolute -top-6 -right-6 w-20 h-20 bg-amber-100/60 rounded-full pointer-events-none"></div>
+        <div class="absolute -bottom-6 -left-6 w-16 h-16 bg-orange-100/50 rounded-full pointer-events-none"></div>
+
+        <!-- Clue Big Emoji with bounce effect -->
+        <div id="clueEmoji" class="text-6xl sm:text-7xl mb-2 filter drop-shadow-md cursor-pointer animate-floatSlow select-none" title="Tap to hear hint!">
+          🐱
+        </div>
+
+        <!-- Hint Sentence -->
+        <p id="clueHint" class="text-slate-600 text-sm sm:text-base font-semibold leading-snug px-2">
+          "A pet animal says meow"
+        </p>
+
+        <!-- Boss level alert text (if boss) -->
+        <div id="bossAlertText" class="hidden mt-2 text-rose-600 text-xs font-black tracking-wide bg-rose-50 border border-rose-200 rounded-lg py-1 px-2">
+          ⚠️ BOSS CHALLENGE: 2 MISSING LETTERS!
+        </div>
+      </div>
+
+      <!-- Big Word Display Box -->
+      <div class="w-full py-2">
+        <div id="wordTilesContainer" class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap transition-all">
+          <!-- Dynamically populated letter tiles -->
+          <!-- e.g. [ C ] [ ? ] [ T ] -->
+        </div>
+      </div>
+
+      <!-- Feedback Reaction Banner -->
+      <div id="feedbackBanner" class="h-6 flex items-center justify-center text-xs sm:text-sm font-bold text-emerald-600 transition-opacity opacity-0">
+        <span id="feedbackText">Awesome!</span>
+      </div>
+
+      <!-- Lifelines / Helps Row (💡 Hint, 🌓 50-50, ⏭️ Skip) -->
+      <div class="flex items-center justify-center gap-2 sm:gap-3 w-full">
+        <!-- Hint Button -->
+        <button id="hintBtn" class="flex-1 btn-3d bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold py-2 px-2 rounded-2xl flex items-center justify-center gap-1.5 text-xs sm:text-sm border-b-4 border-amber-600" title="Reveal missing letter (-10 coins)">
+          <span class="text-base">💡</span>
+          <span>Hint</span>
+          <span class="bg-amber-600/30 text-amber-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">-10🪙</span>
+        </button>
+
+        <!-- 50-50 Button -->
+        <button id="fiftyBtn" class="flex-1 btn-3d bg-sky-400 hover:bg-sky-300 text-sky-950 font-bold py-2 px-2 rounded-2xl flex items-center justify-center gap-1.5 text-xs sm:text-sm border-b-4 border-sky-600" title="Remove 13 wrong keys (-15 coins)">
+          <span class="text-base">🌓</span>
+          <span>50-50</span>
+          <span class="bg-sky-600/30 text-sky-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">-15🪙</span>
+        </button>
+
+        <!-- Skip Button -->
+        <button id="skipBtn" class="flex-1 btn-3d bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-2 rounded-2xl flex items-center justify-center gap-1.5 text-xs sm:text-sm border-b-4 border-slate-400" title="Skip to next word (0 score)">
+          <span class="text-base">⏭️</span>
+          <span>Skip</span>
+        </button>
+      </div>
+
+    </main>
+
+    <!-- KEYBOARD AREA (3 Mobile Phone Rows) -->
+    <footer class="w-full bg-white/80 backdrop-blur-sm p-2 sm:p-3 rounded-3xl shadow-lg border-2 border-orange-100 flex flex-col gap-1.5 mt-2">
+      <div id="kbRow1" class="flex justify-center gap-1 sm:gap-1.5">
+        <!-- Q W E R T Y U I O P -->
+      </div>
+      <div id="kbRow2" class="flex justify-center gap-1 sm:gap-1.5 px-2">
+        <!-- A S D F G H J K L -->
+      </div>
+      <div id="kbRow3" class="flex justify-center gap-1 sm:gap-1.5 px-4">
+        <!-- Z X C V B N M -->
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- WIN MODAL -->
+  <div id="winModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-4 border-emerald-400 animate-popIn relative">
+      <div class="text-5xl mb-2 animate-bounce">🎉</div>
+      <h2 class="text-2xl font-black text-emerald-600 mb-1">Awesome! Correct!</h2>
+      <div class="bg-amber-50 rounded-2xl p-4 my-3 border-2 border-amber-200">
+        <div id="winWordDisplay" class="text-3xl font-black tracking-widest text-slate-800 mb-1">CAT 🐱</div>
+        <p id="winMeaningDisplay" class="text-xs sm:text-sm font-semibold text-slate-600">A friendly small pet animal that meows.</p>
+      </div>
+      <div class="flex items-center justify-center gap-4 text-sm font-bold text-amber-700 mb-5">
+        <span class="flex items-center gap-1 bg-amber-100 px-3 py-1 rounded-xl">🪙 +10 Coins</span>
+        <span class="flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-xl text-blue-700">⭐ +10 Score</span>
+      </div>
+      <button id="nextLevelBtn" class="w-full btn-3d bg-emerald-500 hover:bg-emerald-400 text-white font-black py-3 px-6 rounded-2xl text-lg border-b-4 border-emerald-700 shadow-md">
+        Next Word ➔
+      </button>
+    </div>
+  </div>
+
+  <!-- LOSE / GAME OVER MODAL -->
+  <div id="loseModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-4 border-rose-400 animate-popIn">
+      <div class="text-5xl mb-2 animate-shake">💔</div>
+      <h2 class="text-2xl font-black text-rose-600 mb-1">Oops! Out of Lives</h2>
+      <p class="text-slate-500 text-xs mb-3">No worries, practice makes perfect!</p>
+      <div class="bg-rose-50 rounded-2xl p-4 my-2 border-2 border-rose-200">
+        <div class="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">Correct Word Was:</div>
+        <div id="loseWordDisplay" class="text-3xl font-black tracking-widest text-slate-800 mb-1">CAT 🐱</div>
+        <p id="loseMeaningDisplay" class="text-xs text-slate-600 font-semibold">A small pet animal that says meow.</p>
+      </div>
+      <button id="tryAgainBtn" class="mt-4 w-full btn-3d bg-orange-500 hover:bg-orange-400 text-white font-black py-3 px-6 rounded-2xl text-lg border-b-4 border-orange-700 shadow-md">
+        Try Again 🔄
+      </button>
+    </div>
+  </div>
+
+  <!-- MENU / STANDALONE DOWNLOAD & SETTINGS MODAL -->
+  <div id="menuModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-orange-200 animate-popIn relative">
+      <button id="closeMenuBtn" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm">
+        ✕
+      </button>
+      <h3 class="text-xl font-black text-slate-800 mb-1 flex items-center gap-2">
+        <span>🎮</span> Game Settings
+      </h3>
+      <p class="text-xs text-slate-500 mb-4">Guess The Word - Kids Word Puzzle</p>
+
+      <div class="space-y-3 mb-5">
+        <!-- Daily Streak Box -->
+        <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200 flex items-center justify-between">
+          <div>
+            <div class="text-xs font-bold text-amber-900">Daily Play Streak</div>
+            <div id="menuStreakInfo" class="text-xs text-amber-700">1 day streak (+50 bonus daily)</div>
+          </div>
+          <span class="text-2xl">🔥</span>
+        </div>
+
+        <!-- Pronounce / Voice Read Aloud -->
+        <div class="bg-orange-50 p-3 rounded-2xl border border-orange-200 flex items-center justify-between">
+          <div>
+            <div class="text-xs font-bold text-orange-900">Voice Pronunciation</div>
+            <div class="text-[11px] text-orange-700">Read words aloud on win</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="voiceToggle" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+          </label>
+        </div>
+
+        <!-- Download Single HTML Button -->
+        <button id="downloadHtmlBtn" class="w-full btn-3d bg-blue-500 hover:bg-blue-400 text-white font-bold py-2.5 px-4 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 border-b-4 border-blue-700">
+          <span>💾</span> Download Single HTML File
+        </button>
+
+        <!-- Reset Progress -->
+        <button id="resetProgressBtn" class="w-full text-slate-400 hover:text-rose-500 text-xs font-semibold py-1 transition">
+          Reset Progress (Level 1)
+        </button>
+      </div>
+
+      <div class="text-center text-[11px] text-slate-400">
+        220+ Curated Kids Words · 100% Offline Single HTML
+      </div>
+    </div>
+  </div>
+
+  <!-- API & REAL-TIME TELEMETRY MODAL -->
+  <div id="apiModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border-2 border-indigo-200 animate-popIn relative max-h-[90vh] overflow-y-auto">
+      <button id="closeApiBtn" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm transition">
+        ✕
+      </button>
+
+      <!-- Modal Title -->
+      <div class="flex items-center gap-2 mb-1">
+        <span class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-black">⚡</span>
+        <div>
+          <h3 class="text-lg sm:text-xl font-black text-slate-800 leading-tight">Game API & Live Status</h3>
+          <p class="text-[11px] sm:text-xs text-slate-500">Telemetry feed: Game Won (Jeet), Wrong Guess (Galat), etc.</p>
+        </div>
+      </div>
+
+      <!-- Current Live Game Status Banner -->
+      <div class="my-3 bg-gradient-to-br from-indigo-50/80 to-violet-50/60 rounded-2xl p-3 sm:p-4 border border-indigo-100">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-900/70">Current Game Status</span>
+          <span id="apiStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+            <span id="apiStatusDotInner" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="apiStatusBadgeText">IN PROGRESS</span>
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-white/80 p-2 rounded-xl border border-indigo-50">
+            <div class="text-[10px] text-slate-500 font-bold">CURRENT WORD</div>
+            <div id="apiWordText" class="font-extrabold text-slate-800 text-sm">CAT 🐱</div>
+          </div>
+          <div class="bg-white/80 p-2 rounded-xl border border-indigo-50">
+            <div class="text-[10px] text-slate-500 font-bold">LAST GUESSED LETTER</div>
+            <div id="apiGuessedLetterText" class="font-extrabold text-indigo-600 text-sm">None</div>
+          </div>
+          <div class="bg-white/80 p-2 rounded-xl border border-indigo-50">
+            <div class="text-[10px] text-slate-500 font-bold">RESULT (JEET / GALAT)</div>
+            <div id="apiResultText" class="font-extrabold text-slate-700 text-sm">Chalu hai</div>
+          </div>
+          <div class="bg-white/80 p-2 rounded-xl border border-indigo-50">
+            <div class="text-[10px] text-slate-500 font-bold">LIVES / SCORE</div>
+            <div id="apiLivesScoreText" class="font-extrabold text-amber-600 text-sm">❤️❤️❤️ · 0 pts</div>
+          </div>
+        </div>
+
+        <!-- AI Commentary / Analysis returned from API -->
+        <div class="mt-2.5 bg-indigo-950 text-indigo-100 p-2.5 rounded-xl text-xs">
+          <div class="flex items-center gap-1 text-[10px] font-bold text-indigo-300 uppercase tracking-wider mb-0.5">
+            <span>🤖</span>
+            <span>API Commentary & Feedback:</span>
+          </div>
+          <p id="apiCommentaryText" class="font-medium leading-relaxed text-[11px] sm:text-xs text-indigo-200">
+            Game is active. Guess the missing letter to trigger live API evaluation!
+          </p>
+        </div>
+      </div>
+
+      <!-- API Configuration & Provided Key Card -->
+      <div class="space-y-3 mb-4">
+        <!-- PROVIDED API KEY CARD -->
+        <div class="bg-gradient-to-r from-violet-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-3.5 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🔑</span>
+              <span class="text-xs font-black text-indigo-950">Aapka Provided Game API Key</span>
+            </div>
+            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active & Ready
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-600 mb-2 leading-relaxed">
+            Yeh API key game dwara provide ki gayi hai. Is key se game win hua ya nahi, galat guess, lives, aur score details milti hain.
+          </p>
+
+          <div class="flex items-center gap-1.5 bg-white p-1.5 rounded-xl border border-indigo-200 shadow-inner">
+            <input type="text" id="apiKeyInput" readonly class="flex-1 bg-transparent px-2 py-1 text-xs font-mono font-bold text-indigo-900 focus:outline-none select-all" />
+            <button id="copyApiKeyBtn" type="button" class="btn-3d bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0">
+              <span>📋</span> Copy
+            </button>
+            <button id="generateKeyBtn" type="button" class="btn-3d bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-2.5 py-1.5 rounded-lg shrink-0" title="Generate New Key">
+              🔄 Naya Key
+            </button>
+          </div>
+        </div>
+
+        <!-- API Endpoint URL -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <span>API Endpoint / Webhook URL</span>
+            <span class="text-[10px] text-indigo-600 font-bold cursor-pointer hover:underline" id="resetEndpointBtn">Reset to default</span>
+          </label>
+          <input type="text" id="apiEndpointInput" value="/api/game-event" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" />
+        </div>
+
+        <!-- Quick cURL Code Example -->
+        <div class="bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-xs">
+          <div class="flex items-center justify-between font-bold text-slate-700 mb-1">
+            <span class="flex items-center gap-1 text-[11px]">
+              <span>💻</span> cURL Request Example
+            </span>
+            <button id="copyCurlBtn" type="button" class="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
+              📋 Copy cURL
+            </button>
+          </div>
+          <pre id="curlSnippet" class="bg-slate-900 text-sky-300 p-2 rounded-xl text-[10px] font-mono overflow-x-auto leading-tight"></pre>
+        </div>
+
+        <!-- Auto-Sync Toggle -->
+        <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+          <div>
+            <div class="text-xs font-bold text-slate-800">Auto-Transmit Events</div>
+            <div class="text-[10px] text-slate-500">Har guess par automatic API call (Win / Wrong / Over)</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="autoSyncApiToggle" class="sr-only peer" checked>
+            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- JSON Telemetry Preview -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+          <span class="flex items-center gap-1">
+            <span>📦</span>
+            <span>Live JSON Payload</span>
+          </span>
+          <button id="copyJsonBtn" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md" type="button">
+            <span>📋</span> Copy JSON
+          </button>
+        </div>
+        <pre id="apiJsonPreview" class="bg-slate-900 text-emerald-400 p-2.5 rounded-xl text-[10px] font-mono overflow-x-auto max-h-28 overflow-y-auto leading-tight"></pre>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="testApiBtn" class="flex-1 btn-3d bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 border-b-4 border-indigo-800" type="button">
+          <span>🚀</span>
+          <span>Test API Call Now</span>
+        </button>
+        <button id="saveApiSettingsBtn" class="btn-3d bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1" type="button">
+          <span>💾</span>
+          <span>Save Settings</span>
+        </button>
+      </div>
+
+      <!-- Recent API Event Log -->
+      <div class="mt-4 pt-3 border-t border-slate-100">
+        <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1.5">
+          <span>Recent API Transmissions</span>
+          <button id="clearApiLogBtn" class="text-[10px] text-slate-400 hover:text-rose-500" type="button">Clear</button>
+        </div>
+        <div id="apiEventLogContainer" class="space-y-1 max-h-20 overflow-y-auto text-[10px] text-slate-600">
+          <div class="text-slate-400 italic">No events recorded yet. Guess a letter to begin!</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT GAME ENGINE -->
+  <script>
+    /* ========================================================
+       1. WORD DATABASE (220+ Basic Kid-Friendly Words)
+       Levels 1-20: 3 Letters
+       Levels 21-50: 4 Letters
+       Levels 51-100+: 5 Letters
+       Every 10 levels is a Boss Level (2 Missing Letters)
+       ======================================================== */
+    const WORDS_DATA = [
+      // 3-Letter Words (Animals, Food, Nature, Everyday)
+      { word: "CAT", hint: "A friendly pet that says meow", clueImg: "🐱", category: "Animals", meaning: "A small furry pet that purrs and catches mice." },
+      { word: "COW", hint: "Gives us fresh white milk", clueImg: "🐄", category: "Animals", meaning: "A farm animal that eats grass and moos." },
+      { word: "SUN", hint: "Shines bright in the daytime sky", clueImg: "☀️", category: "Nature", meaning: "The warm star that gives light to Earth." },
+      { word: "DOG", hint: "Barks and wags its tail happily", clueImg: "🐶", category: "Animals", meaning: "A loyal pet known as man's best friend." },
+      { word: "PIG", hint: "Pink farm animal that loves mud", clueImg: "🐷", category: "Animals", meaning: "An intelligent animal that oinks." },
+      { word: "FOX", hint: "Clever wild animal with bushy tail", clueImg: "🦊", category: "Animals", meaning: "A smart reddish creature living in woods." },
+      { word: "HEN", hint: "Lays eggs every morning on farm", clueImg: "🐔", category: "Animals", meaning: "A female chicken that clucks." },
+      { word: "OWL", hint: "Wise bird that stays awake at night", clueImg: "🦉", category: "Animals", meaning: "A nocturnal bird with big round eyes." },
+      { word: "BEE", hint: "Makes sweet honey from flowers", clueImg: "🐝", category: "Animals", meaning: "A buzzing yellow insect that helps plants." },
+      { word: "BAT", hint: "Flies at night and sleeps upside down", clueImg: "🦇", category: "Animals", meaning: "The only mammal that can truly fly." },
+      { word: "CAR", hint: "Has four wheels to drive on roads", clueImg: "🚗", category: "Vehicles", meaning: "A motor vehicle for traveling with family." },
+      { word: "BUS", hint: "Takes lots of students to school", clueImg: "🚌", category: "Vehicles", meaning: "A large vehicle carrying many passengers." },
+      { word: "VAN", hint: "Bigger than car, carries packages", clueImg: "🚐", category: "Vehicles", meaning: "A roomy closed vehicle for road travel." },
+      { word: "CUP", hint: "Used for sipping warm milk or cocoa", clueImg: "☕", category: "Home", meaning: "A small open container with a handle." },
+      { word: "HAT", hint: "Worn on head to block the sun", clueImg: "🧢", category: "Clothes", meaning: "A fun head covering for style and shade." },
+      { word: "PEN", hint: "Used for writing stories with ink", clueImg: "🖊️", category: "School", meaning: "A tool filled with ink for neat writing." },
+      { word: "PAN", hint: "Used by mom to fry tasty eggs", clueImg: "🍳", category: "Home", meaning: "A flat metal cookware used on stoves." },
+      { word: "BOX", hint: "Square cardboard to pack toys", clueImg: "📦", category: "Home", meaning: "A sturdy container with flat sides." },
+      { word: "BED", hint: "Where we sleep with soft pillow", clueImg: "🛏️", category: "Home", meaning: "Cozy furniture where we sleep peacefully." },
+      { word: "SEA", hint: "Huge salty blue water with waves", clueImg: "🌊", category: "Nature", meaning: "The vast body of salt water covering earth." },
+      { word: "SKY", hint: "Blue dome above with clouds", clueImg: "🌤️", category: "Nature", meaning: "The open space above us where birds fly." },
+      { word: "JAM", hint: "Sweet fruit spread on toast", clueImg: "🍓", category: "Food", meaning: "A delicious spread made by boiling fruits." },
+      { word: "ICE", hint: "Frozen water that is cold to touch", clueImg: "🧊", category: "Food", meaning: "Water frozen solid into cold cubes." },
+      { word: "TOY", hint: "Fun item children play with", clueImg: "🧸", category: "Play", meaning: "An entertaining object made for play." },
+      { word: "MAP", hint: "Shows roads, cities, and treasure", clueImg: "🗺️", category: "School", meaning: "A picture diagram showing locations." },
+      { word: "KEY", hint: "Metal tool that unlocks a door", clueImg: "🔑", category: "Home", meaning: "A small shaped metal piece for locks." },
+      { word: "NUT", hint: "Crunchy snack squirrels love", clueImg: "🥜", category: "Food", meaning: "A hard-shelled seed packed with nutrients." },
+      { word: "PIE", hint: "Baked pastry filled with apples", clueImg: "🥧", category: "Food", meaning: "A warm baked dessert with crust." },
+      { word: "EGG", hint: "Oval food from birds with yellow yolk", clueImg: "🥚", category: "Food", meaning: "A nutritious breakfast laid by birds." },
+      { word: "ANT", hint: "Tiny insect carrying heavy crumbs", clueImg: "🐜", category: "Animals", meaning: "A tiny hardworking insect in colonies." },
+      { word: "RAT", hint: "Small rodent with long pink tail", clueImg: "🐀", category: "Animals", meaning: "A quick rodent that likes finding cheese." },
+      { word: "BAG", hint: "Carries books and snacks on back", clueImg: "🎒", category: "School", meaning: "A handy pouch for carrying supplies." },
+      { word: "FAN", hint: "Blows cool breeze in hot summer", clueImg: "🪭", category: "Home", meaning: "A machine that creates pleasant cool air." },
+      { word: "POT", hint: "Holds soil and pretty green flowers", clueImg: "🪴", category: "Nature", meaning: "A round ceramic container for growing plants." },
+      { word: "WEB", hint: "Silky trap spun by little spiders", clueImg: "🕸️", category: "Nature", meaning: "An intricate pattern spun by spiders." },
+      { word: "LOG", hint: "Thick wooden piece from a tree", clueImg: "🪵", category: "Nature", meaning: "A cut portion of a tree trunk." },
+      { word: "CAP", hint: "Sun hat with a front visor", clueImg: "🧢", category: "Clothes", meaning: "A tight-fitting sports hat with peak." },
+      { word: "LIP", hint: "Part of mouth used to smile", clueImg: "👄", category: "Body", meaning: "The fleshy border around mouth." },
+      { word: "EAR", hint: "Body part we use to hear sounds", clueImg: "👂", category: "Body", meaning: "Organ of hearing on sides of head." },
+      { word: "EYE", hint: "Body part we use to see colors", clueImg: "👁️", category: "Body", meaning: "Organ that lets us view the world." },
+      { word: "RUN", hint: "Moving super fast with our legs", clueImg: "🏃", category: "Play", meaning: "To sprint quickly on your feet." },
+      { word: "BOW", hint: "Pretty tied ribbon in hair", clueImg: "🎀", category: "Clothes", meaning: "A decorative ribbon tied with loops." },
+      { word: "JET", hint: "Fast airplane soaring high", clueImg: "✈️", category: "Vehicles", meaning: "A very speedy airplane powered by engines." },
+      { word: "HUT", hint: "Small cozy house made of wood", clueImg: "🛖", category: "Home", meaning: "A simple small shelter." },
+      { word: "BOY", hint: "A young male child", clueImg: "👦", category: "People", meaning: "A young boy enjoying adventures." },
+      { word: "MUG", hint: "Big cup for drinking hot soup", clueImg: "☕", category: "Home", meaning: "A large heavy cup with a handle." },
+      { word: "RUG", hint: "Soft mat laid on bedroom floor", clueImg: "🧶", category: "Home", meaning: "A cozy carpet covering part of floor." },
+      { word: "PIN", hint: "Tiny sharp needle to fasten paper", clueImg: "📍", category: "School", meaning: "A small metal fastener with a head." },
+      { word: "TOP", hint: "Toy that spins around and around", clueImg: "🪀", category: "Play", meaning: "A spinning toy balanced on a point." },
+      { word: "ZIP", hint: "Fastener on jacket or backpack", clueImg: "🤐", category: "Clothes", meaning: "A sliding fastener for closing clothes." },
+      { word: "FOG", hint: "Thick mist that covers the morning", clueImg: "🌫️", category: "Nature", meaning: "A thick cloud of tiny water droplets near ground." },
+      { word: "MUD", hint: "Wet soft earth after heavy rain", clueImg: "🟤", category: "Nature", meaning: "Wet sticky soil that kids splash in." },
+      { word: "NET", hint: "Used to catch butterflies or in soccer", clueImg: "🥅", category: "Play", meaning: "Mesh fabric used in sports and fishing." },
+      { word: "TUB", hint: "Large bowl where we take bubble bath", clueImg: "🛁", category: "Home", meaning: "A deep bathroom vessel for washing." },
+      { word: "CAN", hint: "Metal tin that holds juice or beans", clueImg: "🥫", category: "Food", meaning: "A sealed metal container for food." },
+      { word: "ZOO", hint: "Park where wild animals live", clueImg: "🦁", category: "Places", meaning: "A sanctuary where people visit animals." },
+      { word: "ARM", hint: "Limb connecting shoulder to hand", clueImg: "💪", category: "Body", meaning: "Upper limb used for hugging and lifting." },
+      { word: "LEG", hint: "Limb used for standing and kicking", clueImg: "🦵", category: "Body", meaning: "Lower limb that carries our body." },
+      { word: "AIR", hint: "Invisible breath that fills balloons", clueImg: "💨", category: "Nature", meaning: "The clean atmosphere we breathe." },
+      { word: "DAY", hint: "When sun is up and we go outside", clueImg: "☀️", category: "Nature", meaning: "Daylight period between sunrise and sunset." },
+
+      // 4-Letter Words (Levels 21 - 50 and beyond)
+      { word: "BOOK", hint: "Filled with colorful pages and stories", clueImg: "📚", category: "School", meaning: "Bound printed sheets of stories and knowledge." },
+      { word: "BALL", hint: "Round bouncy toy for football", clueImg: "⚽", category: "Play", meaning: "A round sphere for sports games." },
+      { word: "FISH", hint: "Swims underwater with shiny scales", clueImg: "🐟", category: "Animals", meaning: "A water-dwelling creature that breathes with gills." },
+      { word: "BIRD", hint: "Has feathers and sings in trees", clueImg: "🐦", category: "Animals", meaning: "A feathered creature that flies." },
+      { word: "TREE", hint: "Has green leaves and woody trunk", clueImg: "🌳", category: "Nature", meaning: "A tall plant that gives shade and clean air." },
+      { word: "MOON", hint: "Glows silver in night sky", clueImg: "🌙", category: "Nature", meaning: "Natural satellite that orbits around Earth." },
+      { word: "STAR", hint: "Twinkles high above in the dark", clueImg: "⭐", category: "Nature", meaning: "A glowing astronomical sphere lightyears away." },
+      { word: "DUCK", hint: "Swims in pond and says quack quack", clueImg: "🦆", category: "Animals", meaning: "A water bird with webbed feet." },
+      { word: "FROG", hint: "Green hopper that catches flies", clueImg: "🐸", category: "Animals", meaning: "An amphibian known for long jump leaps." },
+      { word: "LION", hint: "King of jungle with grand mane", clueImg: "🦁", category: "Animals", meaning: "A majestic roaring wild feline." },
+      { word: "BEAR", hint: "Big furry animal that loves honey", clueImg: "🐻", category: "Animals", meaning: "A large heavy wild mammal." },
+      { word: "BOAT", hint: "Floats across calm lake waters", clueImg: "⛵", category: "Vehicles", meaning: "A watercraft designed for navigation." },
+      { word: "CAKE", hint: "Sweet dessert with birthday candles", clueImg: "🎂", category: "Food", meaning: "A yummy baked treat celebrating birthdays." },
+      { word: "MILK", hint: "Healthy calcium drink for strong bones", clueImg: "🥛", category: "Food", meaning: "Nutritious white beverage from cows." },
+      { word: "RING", hint: "Shiny jewelry circle worn on finger", clueImg: "💍", category: "Clothes", meaning: "A circular metal band worn as adornment." },
+      { word: "DOOR", hint: "We turn handle to enter a room", clueImg: "🚪", category: "Home", meaning: "Hinged barrier used to close entrance." },
+      { word: "SHOE", hint: "Worn on feet before stepping out", clueImg: "👟", category: "Clothes", meaning: "Footwear protecting feet while walking." },
+      { word: "BABY", hint: "Very young child that giggles", clueImg: "👶", category: "People", meaning: "A sweet newborn infant." },
+      { word: "RAIN", hint: "Water droplets falling from clouds", clueImg: "🌧️", category: "Nature", meaning: "Water that condenses and falls from clouds." },
+      { word: "SNOW", hint: "Soft white ice flakes in winter", clueImg: "❄️", category: "Nature", meaning: "Frozen crystals creating white winter blankets." },
+      { word: "WIND", hint: "Blowing breeze moving the leaves", clueImg: "💨", category: "Nature", meaning: "Natural movement of moving air." },
+      { word: "PARK", hint: "Green outdoor ground with swings", clueImg: "🏞️", category: "Places", meaning: "An open garden area for family recreation." },
+      { word: "DESK", hint: "Wooden table for studying and homework", clueImg: "🪑", category: "School", meaning: "A study table with flat surface." },
+      { word: "SOUP", hint: "Warm liquid broth served in bowl", clueImg: "🍲", category: "Food", meaning: "A warm liquid food made with vegetables." },
+      { word: "CORN", hint: "Yellow sweet vegetable on cob", clueImg: "🌽", category: "Food", meaning: "Sweet yellow grain that can pop into popcorn." },
+      { word: "ROSE", hint: "Sweet-smelling red flower with thorns", clueImg: "🌹", category: "Nature", meaning: "A beautiful fragrant garden blossom." },
+      { word: "LEAF", hint: "Flat green part growing on branches", clueImg: "🍃", category: "Nature", meaning: "Green foliage that absorbs sunlight." },
+      { word: "HAND", hint: "Has five fingers to hold things", clueImg: "✋", category: "Body", meaning: "The end part of person's arm." },
+      { word: "NOSE", hint: "Smells cookies baking in kitchen", clueImg: "👃", category: "Body", meaning: "Facial organ used for smelling scents." },
+      { word: "FOOT", hint: "Bottom part of leg we stand on", clueImg: "🦶", category: "Body", meaning: "Lower extremity on which we walk." },
+      { word: "DEER", hint: "Graceful forest animal with antlers", clueImg: "🦌", category: "Animals", meaning: "Gentle hoofed forest creature." },
+      { word: "GOAT", hint: "Farm animal with horns that climbs", clueImg: "🐐", category: "Animals", meaning: "A hardy horned domestic mammal." },
+      { word: "CRAB", hint: "Walks sideways on sandy beach", clueImg: "🦀", category: "Animals", meaning: "A sea creature with hard shell and pincers." },
+      { word: "WOLF", hint: "Wild animal that howls at full moon", clueImg: "🐺", category: "Animals", meaning: "A wild pack canine of northern forests." },
+      { word: "SHIP", hint: "Huge vessel sailing across oceans", clueImg: "🚢", category: "Vehicles", meaning: "A large seagoing water vessel." },
+      { word: "BIKE", hint: "Two-wheeled ride with pedals and bell", clueImg: "🚲", category: "Vehicles", meaning: "A bicycle powered by foot pedals." },
+      { word: "SOFA", hint: "Comfy soft couch in living room", clueImg: "🛋️", category: "Home", meaning: "A cushioned comfortable lounge seat." },
+      { word: "LAMP", hint: "Provides warm light on nightstand", clueImg: "💡", category: "Home", meaning: "An electric light bulb fixture." },
+      { word: "FORK", hint: "Utensil with four prongs for pasta", clueImg: "🍴", category: "Home", meaning: "A dining tool used to lift food." },
+      { word: "BOWL", hint: "Deep dish used for crunchy cereal", clueImg: "🥣", category: "Home", meaning: "A round hollow dish for cereal and soup." },
+      { word: "COIN", hint: "Round metal money that jingles", clueImg: "🪙", category: "Everyday", meaning: "A flat piece of metal currency." },
+      { word: "GIFT", hint: "Wrapped present with a pretty bow", clueImg: "🎁", category: "Everyday", meaning: "A joyful present given out of love." },
+      { word: "BELL", hint: "Makes a chiming ring sound in school", clueImg: "🔔", category: "School", meaning: "A hollow metallic instrument that chimes." },
+      { word: "ROPE", hint: "Strong thick cord used for skipping", clueImg: "🪢", category: "Play", meaning: "Strong flexible twisted strands." },
+      { word: "DRUM", hint: "Musical instrument beaten with sticks", clueImg: "🥁", category: "Music", meaning: "A percussion instrument making rhythmic beats." },
+      { word: "KITE", hint: "Flies high in windy blue sky", clueImg: "🪁", category: "Play", meaning: "A light frame flown on a string in the wind." },
+      { word: "NEST", hint: "Cozy twigs where birds lay eggs", clueImg: "🪺", category: "Nature", meaning: "A cozy bird home built in branches." },
+      { word: "SEED", hint: "Planted in soil to grow big flowers", clueImg: "🌱", category: "Nature", meaning: "A tiny plant embryo ready to sprout." },
+      { word: "WAVE", hint: "Ocean water rolling onto shore", clueImg: "🌊", category: "Nature", meaning: "A curling crest of sea water." },
+      { word: "ROCK", hint: "Hard mineral stone found outside", clueImg: "🪨", category: "Nature", meaning: "A solid naturally occurring mineral mass." },
+      { word: "RICE", hint: "Tiny white grains cooked for dinner", clueImg: "🍚", category: "Food", meaning: "Staple food grain enjoyed worldwide." },
+      { word: "PEAR", hint: "Sweet juicy bell-shaped green fruit", clueImg: "🍐", category: "Food", meaning: "A sweet tapering fruit with juicy pulp." },
+      { word: "LIME", hint: "Sour green citrus fruit for drinks", clueImg: "🍋", category: "Food", meaning: "A small round green citrus fruit." },
+      { word: "KIWI", hint: "Brown fuzzy fruit with green center", clueImg: "🥝", category: "Food", meaning: "A sweet brown-skinned fuzzy fruit." },
+      { word: "PLUM", hint: "Sweet purple fruit with inner pit", clueImg: "🫐", category: "Food", meaning: "A smooth-skinned oval fruit." },
+      { word: "COAT", hint: "Warm heavy jacket worn in winter", clueImg: "🧥", category: "Clothes", meaning: "An outer garment worn for warmth." },
+      { word: "SOCK", hint: "Soft garment worn inside shoes", clueImg: "🧦", category: "Clothes", meaning: "A knit covering worn over feet." },
+      { word: "VASE", hint: "Pretty glass jar that holds flowers", clueImg: "🏺", category: "Home", meaning: "An ornamental container for fresh flowers." },
+      { word: "GOLD", hint: "Precious yellow shiny treasure metal", clueImg: "🥇", category: "Everyday", meaning: "A valuable bright yellow metal." },
+      { word: "SAND", hint: "Tiny yellow grains on sea beach", clueImg: "🏖️", category: "Nature", meaning: "Fine granular material on shores." },
+      { word: "ROAD", hint: "Paved path where cars and buses travel", clueImg: "🛣️", category: "Places", meaning: "A wide paved pathway for vehicles." },
+      { word: "HILL", hint: "Raised mound of earth smaller than mountain", clueImg: "⛰️", category: "Nature", meaning: "A natural elevation of ground." },
+      { word: "LAKE", hint: "Large fresh water surrounded by land", clueImg: "🏞️", category: "Nature", meaning: "A body of water surrounded by grassy shores." },
+      { word: "BARN", hint: "Large red building on a farm", clueImg: "🚜", category: "Places", meaning: "A farm building for animals and hay." },
+      { word: "FARM", hint: "Land where crops grow and cows live", clueImg: "🌾", category: "Places", meaning: "An area dedicated to agriculture." },
+      { word: "POND", hint: "Small still water where ducks splash", clueImg: "🦆", category: "Nature", meaning: "A small body of quiet still water." },
+      { word: "TOAD", hint: "Brown bumpy amphibian that hops", clueImg: "🐸", category: "Animals", meaning: "A tailless amphibian with warty skin." },
+      { word: "WORM", hint: "Wiggly earth crawler that helps soil", clueImg: "🪱", category: "Animals", meaning: "A soft burrowing garden invertebrate." },
+      { word: "FIRE", hint: "Bright flames giving warmth and glow", clueImg: "🔥", category: "Nature", meaning: "Combustion giving off bright warm light." },
+      { word: "BONE", hint: "Hard white part inside our bodies", clueImg: "🦴", category: "Body", meaning: "Rigid structure that supports our muscles." },
+      { word: "ROOF", hint: "Top protective cover of a house", clueImg: "🏠", category: "Home", meaning: "The upper protective covering of a home." },
+      { word: "TENT", hint: "Canvas shelter for sleeping in camp", clueImg: "⛺", category: "Play", meaning: "A portable cloth shelter for camping." },
+      { word: "FLAG", hint: "Cloth symbol waving on tall pole", clueImg: "🚩", category: "Everyday", meaning: "A piece of patterned cloth flown on a mast." },
+      { word: "HOOK", hint: "Curved metal used for fishing", clueImg: "🪝", category: "Everyday", meaning: "A curved piece used for catching things." },
+      { word: "SEAL", hint: "Playful sea creature that claps flippers", clueImg: "🦭", category: "Animals", meaning: "A sea mammal with sleek waterproof coat." },
+      { word: "YARN", hint: "Spun ball of wool for knitting sweaters", clueImg: "🧶", category: "Everyday", meaning: "Continuous strands of wool fibers." },
+      { word: "SWAN", hint: "Graceful white bird on the lake", clueImg: "🦢", category: "Animals", meaning: "A majestic water bird with curved neck." },
+      { word: "MINT", hint: "Cool fresh-tasting green leaf", clueImg: "🌿", category: "Food", meaning: "An aromatic plant with refreshing flavor." },
+
+      // 5-Letter Words (Levels 51 - 100 and beyond)
+      { word: "APPLE", hint: "Crisp red fruit that keeps doctor away", clueImg: "🍎", category: "Food", meaning: "A delicious round fruit with sweet red peel." },
+      { word: "TABLE", hint: "Furniture with four legs to eat meals", clueImg: "🪑", category: "Home", meaning: "A flat horizontal surface raised on legs." },
+      { word: "CHAIR", hint: "Seat with back support for resting", clueImg: "🪑", category: "Home", meaning: "A comfortable piece of furniture to sit on." },
+      { word: "WATER", hint: "Clear healthy drink all creatures need", clueImg: "💧", category: "Nature", meaning: "The pure transparent liquid essential to life." },
+      { word: "HOUSE", hint: "Building where happy families live", clueImg: "🏠", category: "Home", meaning: "A building serving as a warm loving home." },
+      { word: "BREAD", hint: "Baked loaf sliced for yummy toast", clueImg: "🍞", category: "Food", meaning: "A staple baked food made from flour." },
+      { word: "SMILE", hint: "Happy curve showing on your face", clueImg: "😊", category: "People", meaning: "A pleased facial expression showing joy." },
+      { word: "GRAPE", hint: "Sweet juicy bunch of purple fruit", clueImg: "🍇", category: "Food", meaning: "Small round sweet berries on vines." },
+      { word: "CLOUD", hint: "Fluffy white puff drifting in the sky", clueImg: "☁️", category: "Nature", meaning: "A visible mass of condensed water vapor." },
+      { word: "TRAIN", hint: "Rides on railroad tracks with chug-chug", clueImg: "🚂", category: "Vehicles", meaning: "A series of connected railway cars." },
+      { word: "PLANT", hint: "Grows in garden with roots and leaves", clueImg: "🪴", category: "Nature", meaning: "A living organism absorbing sunlight." },
+      { word: "CLOCK", hint: "Tells the exact hour with ticking hands", clueImg: "⏰", category: "Home", meaning: "A timepiece device showing hours and minutes." },
+      { word: "HORSE", hint: "Fast farm animal ridden with saddle", clueImg: "🐴", category: "Animals", meaning: "A noble galloping hoofed animal." },
+      { word: "TIGER", hint: "Wild striped big cat that roars", clueImg: "🐯", category: "Animals", meaning: "A magnificent striped jungle predator." },
+      { word: "MOUSE", hint: "Tiny creature that nibbles cheese", clueImg: "🐭", category: "Animals", meaning: "A small squeaking rodent with whiskers." },
+      { word: "SHIRT", hint: "Buttoned clothing worn on upper body", clueImg: "👕", category: "Clothes", meaning: "A cloth garment with collar and sleeves." },
+      { word: "SHOES", hint: "Pair of footwear tied with laces", clueImg: "👟", category: "Clothes", meaning: "Outer coverings worn on feet." },
+      { word: "GRASS", hint: "Green carpet covering lawns and parks", clueImg: "🌿", category: "Nature", meaning: "Green ground plants eaten by sheep." },
+      { word: "PIZZA", hint: "Cheesy round pie with tomato sauce", clueImg: "🍕", category: "Food", meaning: "Italian flatbread topped with cheese." },
+      { word: "SPOON", hint: "Curved utensil used for ice cream", clueImg: "🥄", category: "Home", meaning: "An eating tool with a small oval bowl." },
+      { word: "BEACH", hint: "Sandy shore where waves meet land", clueImg: "🏖️", category: "Places", meaning: "A sandy shore beside the ocean." },
+      { word: "HEART", hint: "Beats rhythmically inside your chest", clueImg: "❤️", category: "Body", meaning: "The vital organ pumping blood." },
+      { word: "MUSIC", hint: "Sweet pleasant songs and melodies", clueImg: "🎵", category: "Play", meaning: "Harmonious sounds arranged in rhythm." },
+      { word: "MONEY", hint: "Bills and coins used at the toy store", clueImg: "💵", category: "Everyday", meaning: "Medium of exchange for buying goods." },
+      { word: "CANDY", hint: "Sweet sugary treat like lollipops", clueImg: "🍬", category: "Food", meaning: "A confectionery treat made with sugar." },
+      { word: "ROBOT", hint: "Mechanical friend programmed to help", clueImg: "🤖", category: "Play", meaning: "An automated electronic machine." },
+      { word: "WHALE", hint: "Huge gentle giant swimming in ocean", clueImg: "🐋", category: "Animals", meaning: "The largest marine mammal on Earth." },
+      { word: "PANDA", hint: "Black and white bear munching bamboo", clueImg: "🐼", category: "Animals", meaning: "A rare charming bear from mountain forests." },
+      { word: "ZEBRA", hint: "Wild African horse with zebra stripes", clueImg: "🦓", category: "Animals", meaning: "An African horse with distinct black/white lines." },
+      { word: "KOALA", hint: "Fluffy Australian tree climber", clueImg: "🐨", category: "Animals", meaning: "An Australian marsupial loving eucalyptus." },
+      { word: "SHEEP", hint: "Gives fluffy warm wool for winter", clueImg: "🐑", category: "Animals", meaning: "A domesticated woolly grazing mammal." },
+      { word: "CAMEL", hint: "Desert traveler with a water hump", clueImg: "🐫", category: "Animals", meaning: "A resilient mammal with water-storing humps." },
+      { word: "SHARK", hint: "Ocean swimmer with sharp dorsal fin", clueImg: "🦈", category: "Animals", meaning: "A sleek aquatic predator with cartilage." },
+      { word: "EAGLE", hint: "Powerful bird soaring high with talons", clueImg: "🦅", category: "Animals", meaning: "A bird of prey known for sharp eyesight." },
+      { word: "CHICK", hint: "Fluffy yellow baby hen that chirps", clueImg: "🐥", category: "Animals", meaning: "A cute newly hatched baby bird." },
+      { word: "TRUCK", hint: "Heavy big motor vehicle hauling cargo", clueImg: "🚚", category: "Vehicles", meaning: "A sturdy vehicle for carrying heavy loads." },
+      { word: "PLANE", hint: "Soars above clouds with giant wings", clueImg: "✈️", category: "Vehicles", meaning: "A winged aircraft powered by jet engines." },
+      { word: "CROWN", hint: "Sparkling golden headpiece of a king", clueImg: "👑", category: "Everyday", meaning: "An ornate royal circular headdress." },
+      { word: "WATCH", hint: "Wrist timepiece telling the minute", clueImg: "⌚", category: "Everyday", meaning: "A small portable clock worn on the wrist." },
+      { word: "GLASS", hint: "Clear cup used to drink water", clueImg: "🥛", category: "Home", meaning: "A transparent drinking cup." },
+      { word: "PLATE", hint: "Round ceramic dish holding dinner", clueImg: "🍽️", category: "Home", meaning: "A flat circular dish for serving meals." },
+      { word: "KNIFE", hint: "Kitchen cutlery tool used to cut fruit", clueImg: "🔪", category: "Home", meaning: "A cutting utensil with a sharp blade." },
+      { word: "TOWEL", hint: "Soft cloth to dry off after bath", clueImg: "🧖", category: "Home", meaning: "An absorbent piece of cloth." },
+      { word: "BRUSH", hint: "Used to brush hair or teeth clean", clueImg: "🪥", category: "Home", meaning: "A tool with bristles for cleaning." },
+      { word: "BROOM", hint: "Long stick that sweeps the dusty floor", clueImg: "🧹", category: "Home", meaning: "A cleaning tool with bound straw bristles." },
+      { word: "PHONE", hint: "Pocket screen we use to call grandma", clueImg: "📱", category: "Everyday", meaning: "An electronic device for voice and messages." },
+      { word: "RADIO", hint: "Plays cheerful music and audio news", clueImg: "📻", category: "Home", meaning: "An apparatus receiving audio broadcast waves." },
+      { word: "TORCH", hint: "Handheld light that brightens dark caves", clueImg: "🔦", category: "Everyday", meaning: "A battery-powered portable electric lamp." },
+      { word: "FLUTE", hint: "Woodwind pipe making airy musical notes", clueImg: "🪈", category: "Music", meaning: "A slender tube musical instrument." },
+      { word: "PIANO", hint: "Grand instrument with 88 black & white keys", clueImg: "🎹", category: "Music", meaning: "A keyboard instrument played by pressing keys." },
+      { word: "PAINT", hint: "Bright colored paste used on canvas", clueImg: "🎨", category: "Play", meaning: "A liquid coloring mixture spread on paper." },
+      { word: "CHALK", hint: "White stick used to write on blackboard", clueImg: "🖍️", category: "School", meaning: "A soft porous rock used for drawing." },
+      { word: "RULER", hint: "Straight plastic stick measuring inches", clueImg: "📏", category: "School", meaning: "A measuring strip marked in centimeters." },
+      { word: "GLOBE", hint: "Round spherical model of Earth map", clueImg: "🌍", category: "School", meaning: "A round representation of our planet." },
+      { word: "HONEY", hint: "Sweet golden syrup from honeybees", clueImg: "🍯", category: "Food", meaning: "Sweet thick fluid made by hardworking bees." },
+      { word: "LEMON", hint: "Sour yellow fruit that makes lemonade", clueImg: "🍋", category: "Food", meaning: "A juicy yellow citrus fruit." },
+      { word: "MANGO", hint: "Sweet golden tropical king of fruits", clueImg: "🥭", category: "Food", meaning: "A fleshy oval tropical fruit." },
+      { word: "ONION", hint: "Bulb vegetable with layers that makes tears", clueImg: "🧅", category: "Food", meaning: "A layered edible pungent vegetable bulb." },
+      { word: "PEACH", hint: "Velvety pink fruit with sweet center", clueImg: "🍑", category: "Food", meaning: "A juicy sweet stone fruit with fuzzy skin." },
+      { word: "SUGAR", hint: "Sweet white crystals added to tea", clueImg: "🧂", category: "Food", meaning: "Sweet crystalline substance from sugarcane." },
+      { word: "SALAD", hint: "Healthy bowl of lettuce and cucumbers", clueImg: "🥗", category: "Food", meaning: "A fresh mix of raw greens and dressing." },
+      { word: "JUICE", hint: "Refreshing fruit drink like orange juice", clueImg: "🧃", category: "Food", meaning: "Natural liquid squeezed from fruits." },
+      { word: "DONUT", hint: "Fried sweet ring coated in glaze", clueImg: "🍩", category: "Food", meaning: "A ring-shaped pastry with colorful sprinkles." },
+      { word: "STORM", hint: "Heavy rain with lightning flashes", clueImg: "⛈️", category: "Nature", meaning: "Violent weather with dark thunder and rain." },
+      { word: "RIVER", hint: "Fresh stream of water flowing to sea", clueImg: "🏞️", category: "Nature", meaning: "A natural flowing watercourse." },
+      { word: "SNAIL", hint: "Slow crawler carrying spiraled shell", clueImg: "🐌", category: "Animals", meaning: "A small slow mollusk with shell on its back." },
+      { word: "PUPPY", hint: "Cute little baby dog full of energy", clueImg: "🐶", category: "Animals", meaning: "A young playful baby canine." },
+      { word: "ROBIN", hint: "Friendly songbird with red-orange chest", clueImg: "🐦", category: "Animals", meaning: "A small familiar bird with red breast." },
+      { word: "TULIP", hint: "Cup-shaped spring flower of many colors", clueImg: "🌷", category: "Nature", meaning: "A lovely bright cup-shaped spring bloom." }
+    ];
+
+    /* ========================================================
+       2. WEB AUDIO API SYNTHESIZER
+       Pure JS synthesizers without external files
+       - tapSound: 600Hz short click
+       - winSound: C5 (523Hz) + E5 (659Hz) + G5 (784Hz) happy chord
+       - wrongSound: 200Hz thud
+       - bossSound: Royal fanfare
+       - coinSound: Retro chime
+       ======================================================== */
+    let audioCtx = null;
+    let isSoundMuted = localStorage.getItem('guess_muted') === 'true';
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
+      if (isSoundMuted) return;
+      initAudio();
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.error('Audio error:', e);
+      }
+    }
+
+    const Sound = {
+      tap() {
+        // 600Hz crisp click
+        playTone(600, 'sine', 0.08, 0.12);
+      },
+      win() {
+        // C5 (523Hz) + E5 (659Hz) + G5 (784Hz) happy chord with arpeggio
+        if (isSoundMuted) return;
+        initAudio();
+        if (!audioCtx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            playTone(freq, 'triangle', 0.35, 0.2);
+          }, idx * 70);
+        });
+      },
+      wrong() {
+        // 200Hz thud downwards to 110Hz
+        if (isSoundMuted) return;
+        initAudio();
+        if (!audioCtx) return;
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.25);
+        } catch (e) {}
+      },
+      coin() {
+        // 987Hz -> 1318Hz retro coin sound
+        playTone(987.77, 'sine', 0.08, 0.15);
+        setTimeout(() => playTone(1318.51, 'sine', 0.18, 0.15), 80);
+      },
+      bossFanfare() {
+        // Special Boss Triumph
+        if (isSoundMuted) return;
+        initAudio();
+        if (!audioCtx) return;
+        const notes = [440, 554, 659, 880];
+        notes.forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.2, 0.12), i * 90));
+      }
+    };
+
+    /* ========================================================
+       3. 60FPS HTML5 CANVAS CONFETTI ENGINE
+       Zero external library requirement
+       ======================================================== */
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function launchConfetti(count = 90) {
+      const colors = ['#F59E0B', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6', '#EF4444', '#FBBF24'];
+      for (let i = 0; i < count; i++) {
+        confettiParticles.push({
+          x: canvas.width * 0.5 + (Math.random() - 0.5) * 120,
+          y: canvas.height * 0.45,
+          vx: (Math.random() - 0.5) * 12,
+          vy: -(Math.random() * 12 + 6),
+          size: Math.random() * 8 + 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 12,
+          shape: Math.random() > 0.4 ? 'rect' : 'circle',
+          opacity: 1
+        });
+      }
+      if (!confettiAnimId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = confettiParticles.length - 1; i >= 0; i--) {
+        const p = confettiParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35; // gravity
+        p.vx *= 0.98; // air resistance
+        p.rotation += p.rotationSpeed;
+        p.opacity -= 0.007;
+
+        if (p.opacity <= 0 || p.y > canvas.height + 20) {
+          confettiParticles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (confettiParticles.length > 0) {
+        confettiAnimId = requestAnimationFrame(animateConfetti);
+      } else {
+        confettiAnimId = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    /* ========================================================
+       4. GAME STATE & PROGRESSION (localStorage)
+       ======================================================== */
+    function generateGameApiKey() {
+      const chars = 'abcdef0123456789';
+      let rand = '';
+      for (let i = 0; i < 16; i++) {
+        rand += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `gtw_live_${rand}`;
+    }
+
+    const State = {
+      level: parseInt(localStorage.getItem('guess_level')) || 1,
+      score: parseInt(localStorage.getItem('guess_score')) || 0,
+      coins: parseInt(localStorage.getItem('guess_coins') || '30'),
+      streak: parseInt(localStorage.getItem('guess_streak')) || 1,
+      lives: 3,
+      usedWordsIndices: JSON.parse(localStorage.getItem('guess_used_indices') || '[]'),
+      currentWordObj: null,
+      missingIndices: [], // indices of missing letters (1 for normal, 2 for boss)
+      activeMissingSlot: 0, // current index in missingIndices waiting for input
+      solvedSlots: {}, // map of slotIndex -> guessedLetter
+      disabledKeysThisWord: new Set(),
+      isLevelCompleted: false,
+      voiceEnabled: localStorage.getItem('guess_voice') !== 'false',
+      // API Telemetry & Webhook State (Auto-provided key)
+      apiKey: localStorage.getItem('guess_api_key') || generateGameApiKey(),
+      apiEndpoint: localStorage.getItem('guess_api_endpoint') || '/api/game-event',
+      autoSyncApi: localStorage.getItem('guess_api_autosync') !== 'false',
+      apiEventsLog: JSON.parse(localStorage.getItem('guess_api_logs') || '[]'),
+      lastApiPayload: null
+    };
+    if (!localStorage.getItem('guess_api_key')) {
+      localStorage.setItem('guess_api_key', State.apiKey);
+    }
+
+    function saveState() {
+      localStorage.setItem('guess_level', State.level);
+      localStorage.setItem('guess_score', State.score);
+      localStorage.setItem('guess_coins', State.coins);
+      localStorage.setItem('guess_streak', State.streak);
+      localStorage.setItem('guess_used_indices', JSON.stringify(State.usedWordsIndices));
+      localStorage.setItem('guess_voice', State.voiceEnabled);
+      localStorage.setItem('guess_api_key', State.apiKey);
+      localStorage.setItem('guess_api_endpoint', State.apiEndpoint);
+      localStorage.setItem('guess_api_autosync', State.autoSyncApi);
+    }
+
+    // Daily streak check
+    function checkDailyStreak() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const lastPlayed = localStorage.getItem('guess_last_played');
+
+      if (!lastPlayed) {
+        // First time playing
+        localStorage.setItem('guess_last_played', todayStr);
+        State.streak = 1;
+        saveState();
+        showToast("Welcome! +30 Coins gifted 🎁");
+      } else if (lastPlayed !== todayStr) {
+        const lastDate = new Date(lastPlayed);
+        const todayDate = new Date(todayStr);
+        const diffDays = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          // Consecutive day!
+          State.streak += 1;
+          State.coins += 50;
+          showToast(`🔥 ${State.streak} Day Streak! +50 Bonus Coins!`);
+        } else if (diffDays > 1) {
+          // Missed a day
+          State.streak = 1;
+          State.coins += 20;
+          showToast("Daily Welcome Back! +20 Coins 🪙");
+        }
+        localStorage.setItem('guess_last_played', todayStr);
+        saveState();
+      }
+    }
+
+    /* ========================================================
+       5. WORD SELECTION & LEVEL LOGIC
+       - Level 1-20: 3 Letters
+       - Level 21-50: 4 Letters
+       - Level 51-100: 5 Letters
+       - Every 10 levels is BOSS LEVEL: 2 Missing Letters!
+       ======================================================== */
+    function isBossLevel(lvl = State.level) {
+      return lvl % 10 === 0;
+    }
+
+    function getTargetLengthForLevel(lvl = State.level) {
+      if (lvl <= 20) return 3;
+      if (lvl <= 50) return 4;
+      return 5;
+    }
+
+    function selectWordForCurrentLevel() {
+      const targetLen = getTargetLengthForLevel(State.level);
+      
+      // Filter words with target length
+      const candidateIndices = [];
+      WORDS_DATA.forEach((item, idx) => {
+        if (item.word.length === targetLen) {
+          candidateIndices.push(idx);
+        }
+      });
+
+      // Filter unused
+      let available = candidateIndices.filter(idx => !State.usedWordsIndices.includes(idx));
+      if (available.length === 0) {
+        // Reset pool for this length
+        State.usedWordsIndices = State.usedWordsIndices.filter(idx => !candidateIndices.includes(idx));
+        available = candidateIndices;
+      }
+
+      // Pick random
+      const selectedIndex = available[Math.floor(Math.random() * available.length)];
+      State.usedWordsIndices.push(selectedIndex);
+      State.currentWordObj = WORDS_DATA[selectedIndex];
+      saveState();
+
+      // Setup missing letters
+      const word = State.currentWordObj.word.toUpperCase();
+      const wordLen = word.length;
+      State.solvedSlots = {};
+      State.disabledKeysThisWord.clear();
+      State.isLevelCompleted = false;
+      State.activeMissingSlot = 0;
+
+      if (isBossLevel(State.level)) {
+        // BOSS LEVEL: 2 missing letters!
+        // E.g. for length 3: index 0 and 2
+        // for length 4: index 1 and 3, or 0 and 2
+        // for length 5: index 1 and 3, or 0 and 3
+        if (wordLen === 3) {
+          State.missingIndices = [0, 2];
+        } else if (wordLen === 4) {
+          State.missingIndices = [1, 3];
+        } else {
+          State.missingIndices = [1, 3];
+        }
+      } else {
+        // NORMAL LEVEL: 1 missing letter
+        // Middle letter or strategic vowel/consonant
+        if (wordLen === 3) {
+          // Usually index 1 (like C_T), or random 0, 1, 2
+          State.missingIndices = [1];
+        } else if (wordLen === 4) {
+          State.missingIndices = [Math.random() < 0.5 ? 1 : 2];
+        } else {
+          State.missingIndices = [Math.floor(Math.random() * 3) + 1]; // 1, 2, or 3
+        }
+      }
+    }
+
+    /* ========================================================
+       6. UI RENDERING & COMPONENT UPDATES
+       ======================================================== */
+    const UI = {
+      levelLabel: document.getElementById('levelLabel'),
+      bossPill: document.getElementById('bossPill'),
+      bossAlertText: document.getElementById('bossAlertText'),
+      coinsCount: document.getElementById('coinsCount'),
+      scoreCount: document.getElementById('scoreCount'),
+      livesContainer: document.getElementById('livesContainer'),
+      categoryEmoji: document.getElementById('categoryEmoji'),
+      categoryName: document.getElementById('categoryName'),
+      streakBadge: document.getElementById('streakBadge'),
+      streakCount: document.getElementById('streakCount'),
+      clueEmoji: document.getElementById('clueEmoji'),
+      clueHint: document.getElementById('clueHint'),
+      wordTilesContainer: document.getElementById('wordTilesContainer'),
+      feedbackBanner: document.getElementById('feedbackBanner'),
+      feedbackText: document.getElementById('feedbackText'),
+      soundBtn: document.getElementById('soundBtn'),
+      menuBtn: document.getElementById('menuBtn'),
+      hintBtn: document.getElementById('hintBtn'),
+      fiftyBtn: document.getElementById('fiftyBtn'),
+      skipBtn: document.getElementById('skipBtn'),
+      kbRow1: document.getElementById('kbRow1'),
+      kbRow2: document.getElementById('kbRow2'),
+      kbRow3: document.getElementById('kbRow3'),
+      winModal: document.getElementById('winModal'),
+      winWordDisplay: document.getElementById('winWordDisplay'),
+      winMeaningDisplay: document.getElementById('winMeaningDisplay'),
+      nextLevelBtn: document.getElementById('nextLevelBtn'),
+      loseModal: document.getElementById('loseModal'),
+      loseWordDisplay: document.getElementById('loseWordDisplay'),
+      loseMeaningDisplay: document.getElementById('loseMeaningDisplay'),
+      tryAgainBtn: document.getElementById('tryAgainBtn'),
+      menuModal: document.getElementById('menuModal'),
+      closeMenuBtn: document.getElementById('closeMenuBtn'),
+      menuStreakInfo: document.getElementById('menuStreakInfo'),
+      voiceToggle: document.getElementById('voiceToggle'),
+      downloadHtmlBtn: document.getElementById('downloadHtmlBtn'),
+      resetProgressBtn: document.getElementById('resetProgressBtn'),
+      toast: document.getElementById('toast'),
+      toastIcon: document.getElementById('toastIcon'),
+      toastText: document.getElementById('toastText'),
+      // API Telemetry UI elements
+      apiBtn: document.getElementById('apiBtn'),
+      apiStatusDot: document.getElementById('apiStatusDot'),
+      apiModal: document.getElementById('apiModal'),
+      closeApiBtn: document.getElementById('closeApiBtn'),
+      apiStatusBadge: document.getElementById('apiStatusBadge'),
+      apiStatusDotInner: document.getElementById('apiStatusDotInner'),
+      apiStatusBadgeText: document.getElementById('apiStatusBadgeText'),
+      apiWordText: document.getElementById('apiWordText'),
+      apiGuessedLetterText: document.getElementById('apiGuessedLetterText'),
+      apiResultText: document.getElementById('apiResultText'),
+      apiLivesScoreText: document.getElementById('apiLivesScoreText'),
+      apiCommentaryText: document.getElementById('apiCommentaryText'),
+      apiKeyInput: document.getElementById('apiKeyInput'),
+      copyApiKeyBtn: document.getElementById('copyApiKeyBtn'),
+      generateKeyBtn: document.getElementById('generateKeyBtn'),
+      copyCurlBtn: document.getElementById('copyCurlBtn'),
+      curlSnippet: document.getElementById('curlSnippet'),
+      apiEndpointInput: document.getElementById('apiEndpointInput'),
+      resetEndpointBtn: document.getElementById('resetEndpointBtn'),
+      autoSyncApiToggle: document.getElementById('autoSyncApiToggle'),
+      apiJsonPreview: document.getElementById('apiJsonPreview'),
+      copyJsonBtn: document.getElementById('copyJsonBtn'),
+      testApiBtn: document.getElementById('testApiBtn'),
+      saveApiSettingsBtn: document.getElementById('saveApiSettingsBtn'),
+      clearApiLogBtn: document.getElementById('clearApiLogBtn'),
+      apiEventLogContainer: document.getElementById('apiEventLogContainer')
+    };
+
+    function updateTopBar() {
+      UI.levelLabel.textContent = `LVL ${State.level}/100`;
+      UI.coinsCount.textContent = State.coins;
+      UI.scoreCount.textContent = State.score;
+      UI.streakCount.textContent = `${State.streak} Day Streak`;
+      UI.menuStreakInfo.textContent = `${State.streak} day streak (+50 bonus daily)`;
+
+      const boss = isBossLevel(State.level);
+      if (boss) {
+        UI.bossPill.classList.remove('hidden');
+        UI.bossAlertText.classList.remove('hidden');
+      } else {
+        UI.bossPill.classList.add('hidden');
+        UI.bossAlertText.classList.add('hidden');
+      }
+
+      // Hearts
+      const hearts = ['❤️', '❤️', '❤️'];
+      for (let i = 0; i < 3; i++) {
+        const heartEl = document.getElementById(`heart${i + 1}`);
+        if (i < State.lives) {
+          heartEl.textContent = '❤️';
+          heartEl.classList.remove('opacity-30', 'scale-75');
+        } else {
+          heartEl.textContent = '🖤';
+          heartEl.classList.add('opacity-30', 'scale-75');
+        }
+      }
+    }
+
+    function renderWordTiles() {
+      const word = State.currentWordObj.word.toUpperCase();
+      UI.wordTilesContainer.innerHTML = '';
+
+      for (let i = 0; i < word.length; i++) {
+        const tile = document.createElement('div');
+        tile.id = `tile-${i}`;
+        const isMissing = State.missingIndices.includes(i);
+
+        if (!isMissing) {
+          // Normal visible letter
+          tile.className = "w-14 h-16 sm:w-16 sm:h-20 bg-white rounded-2xl shadow-md border-2 border-orange-200 flex items-center justify-center text-3xl sm:text-4xl font-extrabold text-slate-800 transition-all select-none";
+          tile.textContent = word[i];
+        } else {
+          // Missing box
+          const isSolved = State.solvedSlots[i] !== undefined;
+          const currentTargetIdx = State.missingIndices[State.activeMissingSlot];
+          const isActive = (i === currentTargetIdx);
+
+          if (isSolved) {
+            tile.className = "w-14 h-16 sm:w-16 sm:h-20 bg-emerald-100 rounded-2xl shadow-md border-3 border-emerald-500 flex items-center justify-center text-3xl sm:text-4xl font-extrabold text-emerald-700 animate-popIn select-none";
+            tile.textContent = State.solvedSlots[i];
+          } else {
+            tile.className = `w-14 h-16 sm:w-16 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-amber-600 missing-box ${isActive ? 'active-box' : 'opacity-70'} transition-all select-none`;
+            // Show question mark or blinking cursor
+            tile.innerHTML = isActive 
+              ? `<span class="text-amber-500 font-extrabold text-3xl animate-pulse">?</span>`
+              : `<span class="text-amber-400 font-bold text-2xl">?</span>`;
+          }
+        }
+        UI.wordTilesContainer.appendChild(tile);
+      }
+    }
+
+    function renderClueCard() {
+      UI.clueEmoji.textContent = State.currentWordObj.clueImg;
+      UI.clueHint.textContent = `"${State.currentWordObj.hint}"`;
+      UI.categoryEmoji.textContent = getCategoryEmoji(State.currentWordObj.category);
+      UI.categoryName.textContent = State.currentWordObj.category;
+    }
+
+    function getCategoryEmoji(cat) {
+      const map = {
+        'Animals': '🐾',
+        'Food': '🍎',
+        'Nature': '🌿',
+        'Home': '🏠',
+        'Vehicles': '🚗',
+        'Clothes': '👕',
+        'School': '📚',
+        'Play': '🧸',
+        'People': '👶',
+        'Body': '✋',
+        'Music': '🎵',
+        'Places': '🏞️',
+        'Everyday': '✨'
+      };
+      return map[cat] || '⭐';
+    }
+
+    /* ========================================================
+       7. MOBILE KEYBOARD (QWERTY Layout with Tactile Feedback)
+       ======================================================== */
+    const KEYBOARD_ROWS = [
+      ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+      ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+      ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+    ];
+
+    function renderKeyboard() {
+      [UI.kbRow1, UI.kbRow2, UI.kbRow3].forEach((rowEl, rowIdx) => {
+        rowEl.innerHTML = '';
+        KEYBOARD_ROWS[rowIdx].forEach(letter => {
+          const btn = document.createElement('button');
+          btn.id = `key-${letter}`;
+          btn.type = 'button';
+          btn.textContent = letter;
+          btn.className = "key-btn flex-1 min-w-[28px] max-w-[40px] h-11 sm:h-12 bg-slate-100 hover:bg-slate-50 text-slate-800 rounded-xl font-black text-sm sm:text-base flex items-center justify-center transition";
+          
+          btn.addEventListener('click', () => handleGuessLetter(letter));
+          rowEl.appendChild(btn);
+        });
+      });
+      refreshKeyboardStates();
+    }
+
+    function refreshKeyboardStates() {
+      KEYBOARD_ROWS.flat().forEach(letter => {
+        const btn = document.getElementById(`key-${letter}`);
+        if (!btn) return;
+        if (State.disabledKeysThisWord.has(letter)) {
+          btn.disabled = true;
+          btn.classList.add('opacity-30', 'cursor-not-allowed', 'bg-slate-200');
+        } else {
+          btn.disabled = false;
+          btn.classList.remove('opacity-30', 'cursor-not-allowed', 'bg-slate-200', 'correct-pop', 'wrong-shake');
+        }
+      });
+    }
+
+    /* ========================================================
+       8. GUESS LOGIC & WIN/LOSE HANDLING
+       ======================================================== */
+    function handleGuessLetter(guessedLetter) {
+      if (State.isLevelCompleted || State.lives <= 0) return;
+
+      Sound.tap();
+
+      const word = State.currentWordObj.word.toUpperCase();
+      const currentTargetMissingIdx = State.missingIndices[State.activeMissingSlot];
+      const correctLetter = word[currentTargetMissingIdx];
+
+      const keyBtn = document.getElementById(`key-${guessedLetter}`);
+
+      if (guessedLetter === correctLetter) {
+        // === CORRECT GUESS! ===
+        if (keyBtn) {
+          keyBtn.classList.add('correct-pop');
+        }
+
+        // Fill the blank box
+        State.solvedSlots[currentTargetMissingIdx] = guessedLetter;
+        renderWordTiles();
+
+        // Check if there is another missing slot (Boss Level)
+        State.activeMissingSlot++;
+        if (State.activeMissingSlot < State.missingIndices.length) {
+          // More letters left in this word!
+          showFeedback("Nice! 1 more letter! ✨", "text-amber-600");
+          Sound.tap();
+          renderWordTiles();
+          sendGameApiEvent('PARTIAL_CORRECT', { guessedLetter, correctLetter });
+        } else {
+          // WORD FULLY SOLVED!
+          handleWordCompleted(guessedLetter, correctLetter);
+        }
+      } else {
+        // === WRONG GUESS! ===
+        Sound.wrong();
+
+        if (keyBtn) {
+          keyBtn.classList.add('wrong-shake');
+          keyBtn.disabled = true;
+          setTimeout(() => {
+            if (!State.disabledKeysThisWord.has(guessedLetter)) {
+              keyBtn.classList.remove('wrong-shake');
+              keyBtn.disabled = false;
+            }
+          }, 500);
+        }
+
+        // Shake active blank tile
+        const activeTile = document.getElementById(`tile-${currentTargetMissingIdx}`);
+        if (activeTile) {
+          activeTile.classList.add('animate-shake');
+          setTimeout(() => activeTile.classList.remove('animate-shake'), 450);
+        }
+
+        // Deduct life
+        State.lives -= 1;
+        updateTopBar();
+        showFeedback("Oops! Try again 💔", "text-rose-500");
+
+        // Transmit WRONG guess event to API
+        sendGameApiEvent('WRONG', { guessedLetter, correctLetter });
+
+        if (State.lives <= 0) {
+          // GAME OVER
+          handleGameOver();
+        }
+      }
+    }
+
+    function handleWordCompleted(guessedLetter, correctLetter) {
+      State.isLevelCompleted = true;
+      const isBoss = isBossLevel(State.level);
+      const earnedCoins = isBoss ? 25 : 10;
+      const earnedScore = 10;
+
+      State.coins += earnedCoins;
+      State.score += earnedScore;
+      saveState();
+      updateTopBar();
+
+      // Transmit WIN event to API
+      sendGameApiEvent('WIN', { guessedLetter, correctLetter });
+
+      // Audio & Confetti
+      if (isBoss) {
+        Sound.bossFanfare();
+        launchConfetti(140);
+        showToast("👹 BOSS DEFEATED! +25 🪙");
+      } else {
+        Sound.win();
+        launchConfetti(80);
+      }
+
+      // Voice speech synthesis
+      if (State.voiceEnabled && 'speechSynthesis' in window) {
+        try {
+          const utterance = new SpeechSynthesisUtterance(State.currentWordObj.word.toLowerCase());
+          utterance.rate = 0.85;
+          utterance.pitch = 1.1;
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {}
+      }
+
+      showFeedback(`Correct! It's ${State.currentWordObj.word} 🎉`, "text-emerald-600");
+
+      // Auto show Win Modal after 700ms
+      setTimeout(() => {
+        UI.winWordDisplay.textContent = `${State.currentWordObj.word} ${State.currentWordObj.clueImg}`;
+        UI.winMeaningDisplay.textContent = State.currentWordObj.meaning;
+        UI.winModal.classList.remove('hidden');
+      }, 750);
+    }
+
+    function handleGameOver() {
+      Sound.wrong();
+      UI.loseWordDisplay.textContent = `${State.currentWordObj.word} ${State.currentWordObj.clueImg}`;
+      UI.loseMeaningDisplay.textContent = State.currentWordObj.meaning;
+      // Transmit GAME_OVER event to API
+      sendGameApiEvent('GAME_OVER', { guessedLetter: null, correctLetter: null });
+      setTimeout(() => {
+        UI.loseModal.classList.remove('hidden');
+      }, 500);
+    }
+
+    function advanceToNextLevel() {
+      UI.winModal.classList.add('hidden');
+      State.level += 1;
+      State.lives = 3;
+      saveState();
+      loadLevel();
+    }
+
+    function retryCurrentLevel() {
+      UI.loseModal.classList.add('hidden');
+      State.lives = 3;
+      State.disabledKeysThisWord.clear();
+      saveState();
+      loadLevel();
+    }
+
+    function loadLevel() {
+      selectWordForCurrentLevel();
+      updateTopBar();
+      renderClueCard();
+      renderWordTiles();
+      renderKeyboard();
+      clearFeedback();
+      sendGameApiEvent('IN_PROGRESS', {});
+    }
+
+    function showFeedback(text, colorClass) {
+      UI.feedbackText.textContent = text;
+      UI.feedbackBanner.className = `h-6 flex items-center justify-center text-xs sm:text-sm font-black transition-opacity opacity-100 ${colorClass}`;
+    }
+
+    function clearFeedback() {
+      UI.feedbackBanner.classList.add('opacity-0');
+    }
+
+    function showToast(text, icon = '✨') {
+      UI.toastIcon.textContent = icon;
+      UI.toastText.textContent = text;
+      UI.toast.classList.remove('opacity-0');
+      setTimeout(() => {
+        UI.toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    /* ========================================================
+       9. POWER-UPS & HELPS (Hint, 50-50, Skip)
+       ======================================================== */
+    // 💡 Hint Button: Reveals active missing letter for 10 coins
+    UI.hintBtn.addEventListener('click', () => {
+      Sound.tap();
+      if (State.coins < 10) {
+        showToast("Need 10 Coins for Hint! 🪙", "⚠️");
+        return;
+      }
+      if (State.isLevelCompleted) return;
+
+      State.coins -= 10;
+      saveState();
+      updateTopBar();
+      Sound.coin();
+
+      const word = State.currentWordObj.word.toUpperCase();
+      const currentTargetMissingIdx = State.missingIndices[State.activeMissingSlot];
+      const correctLetter = word[currentTargetMissingIdx];
+
+      showToast(`Hint: Letter is '${correctLetter}'! 💡`);
+      handleGuessLetter(correctLetter);
+    });
+
+    // 🌓 50-50 Button: Disables 13 wrong keys for 15 coins
+    UI.fiftyBtn.addEventListener('click', () => {
+      Sound.tap();
+      if (State.coins < 15) {
+        showToast("Need 15 Coins for 50-50! 🪙", "⚠️");
+        return;
+      }
+      if (State.isLevelCompleted) return;
+
+      const word = State.currentWordObj.word.toUpperCase();
+      const neededLetters = new Set(State.missingIndices.map(i => word[i]));
+      const allAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+      const wrongLetters = allAlphabet.filter(l => !neededLetters.has(l) && !State.disabledKeysThisWord.has(l));
+
+      if (wrongLetters.length === 0) return;
+
+      State.coins -= 15;
+      saveState();
+      updateTopBar();
+      Sound.coin();
+
+      // Shuffle wrong letters and pick 13
+      const shuffled = wrongLetters.sort(() => 0.5 - Math.random());
+      const toDisable = shuffled.slice(0, 13);
+      toDisable.forEach(letter => State.disabledKeysThisWord.add(letter));
+
+      refreshKeyboardStates();
+      showToast("Removed 13 Wrong Keys! 🌓");
+    });
+
+    // ⏭️ Skip Button: Skips word without score penalty
+    UI.skipBtn.addEventListener('click', () => {
+      Sound.tap();
+      showToast("Word Skipped! ⏭️");
+      State.lives = 3;
+      loadLevel();
+    });
+
+    // Modal buttons
+    UI.nextLevelBtn.addEventListener('click', advanceToNextLevel);
+    UI.tryAgainBtn.addEventListener('click', retryCurrentLevel);
+
+    // Audio Mute toggle
+    UI.soundBtn.addEventListener('click', () => {
+      isSoundMuted = !isSoundMuted;
+      localStorage.setItem('guess_muted', isSoundMuted);
+      UI.soundBtn.textContent = isSoundMuted ? '🔇' : '🔊';
+      showToast(isSoundMuted ? "Sound Muted" : "Sound Enabled 🔊");
+    });
+
+    // Menu modal open/close
+    UI.menuBtn.addEventListener('click', () => {
+      Sound.tap();
+      UI.menuModal.classList.remove('hidden');
+    });
+    UI.closeMenuBtn.addEventListener('click', () => {
+      Sound.tap();
+      UI.menuModal.classList.add('hidden');
+    });
+
+    // Voice Toggle
+    UI.voiceToggle.checked = State.voiceEnabled;
+    UI.voiceToggle.addEventListener('change', (e) => {
+      State.voiceEnabled = e.target.checked;
+      saveState();
+      showToast(State.voiceEnabled ? "Voice Enabled" : "Voice Disabled");
+    });
+
+    // Reset Progress
+    UI.resetProgressBtn.addEventListener('click', () => {
+      if (confirm("Reset game progress back to Level 1?")) {
+        State.level = 1;
+        State.score = 0;
+        State.coins = 30;
+        State.usedWordsIndices = [];
+        State.lives = 3;
+        saveState();
+        UI.menuModal.classList.add('hidden');
+        loadLevel();
+        showToast("Progress Reset! Welcome to Level 1");
+      }
+    });
+
+    // Download Single HTML File feature
+    UI.downloadHtmlBtn.addEventListener('click', () => {
+      Sound.coin();
+      const currentHtml = document.documentElement.outerHTML;
+      const blob = new Blob([`<!DOCTYPE html>\n${currentHtml}`], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'guess_the_word_game.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Single HTML file downloaded! 💾");
+    });
+
+    // Physical Keyboard Support
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toUpperCase();
+      if (/^[A-Z]$/.test(key)) {
+        if (!State.disabledKeysThisWord.has(key)) {
+          handleGuessLetter(key);
+        }
+      } else if (e.key === 'Enter') {
+        if (!UI.winModal.classList.contains('hidden')) {
+          advanceToNextLevel();
+        } else if (!UI.loseModal.classList.contains('hidden')) {
+          retryCurrentLevel();
+        }
+      }
+    });
+
+    // Tap emoji to hear pronunciation
+    UI.clueEmoji.addEventListener('click', () => {
+      Sound.tap();
+      UI.clueEmoji.classList.add('animate-bounceCard');
+      setTimeout(() => UI.clueEmoji.classList.remove('animate-bounceCard'), 400);
+      if ('speechSynthesis' in window) {
+        try {
+          const text = `${State.currentWordObj.word}. ${State.currentWordObj.hint}`;
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {}
+      }
+    });
+
+    /* ========================================================
+       10. API TELEMETRY & STATUS ENGINE
+       Transmits real-time game details:
+       - Status: WIN (Jeet gaya), WRONG (Galat koshish), GAME_OVER (Haar gaya)
+       - Word, letter guessed, lives left, score, coins, boss level
+       - Receives server response & AI commentary
+       ======================================================== */
+    async function sendGameApiEvent(statusType, extra = {}) {
+      if (!State.currentWordObj) return;
+
+      const word = State.currentWordObj.word.toUpperCase();
+      const currentTargetMissingIdx = State.missingIndices[State.activeMissingSlot] ?? 0;
+      const correctLetter = word[currentTargetMissingIdx] || '';
+
+      const payload = {
+        status: statusType, // 'WIN', 'WRONG', 'GAME_OVER', 'IN_PROGRESS', 'PARTIAL_CORRECT'
+        word: word,
+        clueImg: State.currentWordObj.clueImg,
+        category: State.currentWordObj.category,
+        hint: State.currentWordObj.hint,
+        guessedLetter: extra.guessedLetter || null,
+        correctLetter: extra.correctLetter || correctLetter,
+        lives: State.lives,
+        score: State.score,
+        coins: State.coins,
+        level: State.level,
+        isBoss: isBossLevel(State.level),
+        streak: State.streak,
+        timestamp: new Date().toISOString()
+      };
+
+      State.lastApiPayload = payload;
+
+      // Update Modal snapshot immediately
+      updateApiModalSnapshot(payload);
+
+      // Check if auto sync or manual test
+      if (!State.autoSyncApi && !extra.isManualTest) {
+        return;
+      }
+
+      // Blink API status indicator
+      if (UI.apiStatusDot) {
+        UI.apiStatusDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+      }
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (State.apiKey) {
+          headers['Authorization'] = `Bearer ${State.apiKey}`;
+          headers['X-Api-Key'] = State.apiKey;
+        }
+
+        const endpoint = State.apiEndpoint || '/api/game-event';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (UI.apiStatusDot) {
+            UI.apiStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+          }
+
+          if (data.commentary) {
+            UI.apiCommentaryText.textContent = data.commentary;
+          } else if (data.message) {
+            UI.apiCommentaryText.textContent = data.message;
+          }
+
+          UI.apiJsonPreview.textContent = JSON.stringify(data, null, 2);
+          logApiEvent(statusType, payload, data.commentary || data.message || 'Success');
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (err) {
+        // Fallback for standalone single HTML (offline / external without server)
+        if (UI.apiStatusDot) {
+          UI.apiStatusDot.className = "w-2 h-2 rounded-full bg-indigo-400";
+        }
+
+        let fallbackCommentary = '';
+        if (statusType === 'WIN') {
+          fallbackCommentary = `🎉 Zabardast! Aapne word "${word}" sahi guess kiya aur match jeet gaye! +10 Points mile!`;
+        } else if (statusType === 'WRONG') {
+          fallbackCommentary = `❌ Galat guess! Letter "${extra.guessedLetter || '?'}" sahi nahi tha. Hint: "${State.currentWordObj.hint}". Sahi letter dhoondo!`;
+        } else if (statusType === 'GAME_OVER') {
+          fallbackCommentary = `💔 Sari 3 lives khatam ho gayi! Sahi word "${word}" tha. Try Again karke dobara jeeto!`;
+        } else {
+          fallbackCommentary = `🎮 Match chalu hai! Sahi letter chun kar word pura karo!`;
+        }
+
+        UI.apiCommentaryText.textContent = fallbackCommentary;
+        const simulated = {
+          success: true,
+          mode: 'client_telemetry',
+          status: statusType,
+          winStatusText: statusType === 'WIN' ? 'JEET GAYA (WIN 🎉)' : statusType === 'WRONG' ? 'GALAT GUESS (WRONG ❌)' : statusType === 'GAME_OVER' ? 'GAME OVER 💔' : 'IN PROGRESS',
+          word,
+          livesLeft: State.lives,
+          commentary: fallbackCommentary,
+          sentPayload: payload
+        };
+        UI.apiJsonPreview.textContent = JSON.stringify(simulated, null, 2);
+        logApiEvent(statusType, payload, fallbackCommentary);
+      }
+    }
+
+    function updateApiModalSnapshot(p) {
+      if (!p) return;
+      UI.apiWordText.textContent = `${p.word} ${p.clueImg || ''}`;
+      UI.apiGuessedLetterText.textContent = p.guessedLetter ? `${p.guessedLetter}` : 'None';
+      UI.apiLivesScoreText.textContent = `${'❤️'.repeat(Math.max(0, p.lives))} · ${p.score} pts`;
+
+      if (p.status === 'WIN') {
+        UI.apiStatusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1";
+        UI.apiStatusDotInner.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        UI.apiStatusBadgeText.textContent = "JEET GAYA (WIN 🎉)";
+        UI.apiResultText.textContent = "Jeet Gaya! (+10 pts)";
+      } else if (p.status === 'WRONG') {
+        UI.apiStatusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1";
+        UI.apiStatusDotInner.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+        UI.apiStatusBadgeText.textContent = "GALAT GUESS (WRONG ❌)";
+        UI.apiResultText.textContent = `Galat: '${p.guessedLetter}' (-1 Life)`;
+      } else if (p.status === 'GAME_OVER') {
+        UI.apiStatusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-900 text-white border border-slate-700 flex items-center gap-1";
+        UI.apiStatusDotInner.className = "w-2 h-2 rounded-full bg-rose-500";
+        UI.apiStatusBadgeText.textContent = "GAME OVER (HAAR GAYA 💔)";
+        UI.apiResultText.textContent = "All 3 Lives Lost";
+      } else {
+        UI.apiStatusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1";
+        UI.apiStatusDotInner.className = "w-2 h-2 rounded-full bg-amber-500";
+        UI.apiStatusBadgeText.textContent = "IN PROGRESS 🎮";
+        UI.apiResultText.textContent = "Match chalu hai";
+      }
+
+      UI.apiJsonPreview.textContent = JSON.stringify(p, null, 2);
+    }
+
+    function logApiEvent(status, payload, message) {
+      const time = new Date().toLocaleTimeString();
+      State.apiEventsLog.unshift({ time, status, word: payload.word, guessedLetter: payload.guessedLetter, message });
+      if (State.apiEventsLog.length > 20) State.apiEventsLog.pop();
+      try {
+        localStorage.setItem('guess_api_logs', JSON.stringify(State.apiEventsLog));
+      } catch (e) {}
+      renderApiEventLog();
+    }
+
+    function renderApiEventLog() {
+      if (!UI.apiEventLogContainer) return;
+      if (State.apiEventsLog.length === 0) {
+        UI.apiEventLogContainer.innerHTML = '<div class="text-slate-400 italic">No events recorded yet. Guess a letter to begin!</div>';
+        return;
+      }
+      UI.apiEventLogContainer.innerHTML = State.apiEventsLog.map(item => {
+        const color = item.status === 'WIN' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : item.status === 'WRONG' ? 'text-rose-700 bg-rose-50 border-rose-200' : item.status === 'GAME_OVER' ? 'text-slate-700 bg-slate-100 border-slate-200' : 'text-indigo-700 bg-indigo-50 border-indigo-200';
+        return `
+          <div class="p-1.5 rounded-lg border ${color} flex items-center justify-between text-[10px]">
+            <span class="font-bold">[${item.time}] ${item.status}: ${item.word} ${item.guessedLetter ? `('${item.guessedLetter}')` : ''}</span>
+            <span class="truncate max-w-[130px] text-slate-500">${item.message}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // API Modal event listeners
+    UI.apiBtn.addEventListener('click', () => {
+      Sound.tap();
+      if (State.lastApiPayload) {
+        updateApiModalSnapshot(State.lastApiPayload);
+      }
+      renderApiEventLog();
+      UI.apiKeyInput.value = State.apiKey;
+      UI.apiEndpointInput.value = State.apiEndpoint;
+      UI.autoSyncApiToggle.checked = State.autoSyncApi;
+      UI.apiModal.classList.remove('hidden');
+    });
+
+    UI.closeApiBtn.addEventListener('click', () => {
+      Sound.tap();
+      UI.apiModal.classList.add('hidden');
+    });
+
+    function updateCurlSnippet() {
+      const origin = window.location.origin || 'https://game-app.run.app';
+      const endpoint = State.apiEndpoint.startsWith('http') ? State.apiEndpoint : `${origin}${State.apiEndpoint}`;
+      const code = `curl -X POST "${endpoint}" \\
+  -H "Authorization: Bearer ${State.apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"status":"WIN","word":"CAT","level":1,"score":10,"lives":3}'`;
+      if (UI.curlSnippet) {
+        UI.curlSnippet.textContent = code;
+      }
+    }
+
+    // Secret 3-click trigger on the Black Box to open API Key modal
+    let blackBoxClickCount = 0;
+    let blackBoxClickTimer = null;
+
+    UI.apiBtn.addEventListener('click', () => {
+      blackBoxClickCount++;
+      clearTimeout(blackBoxClickTimer);
+
+      // Subtle audio feedback
+      Sound.tap();
+
+      // Open only after 3 clicks
+      if (blackBoxClickCount >= 3) {
+        blackBoxClickCount = 0;
+        Sound.coin();
+        showToast("🔓 Secret API Key Unlocked! 🔑");
+        if (State.lastApiPayload) {
+          updateApiModalSnapshot(State.lastApiPayload);
+        }
+        renderApiEventLog();
+        UI.apiKeyInput.value = State.apiKey;
+        UI.apiEndpointInput.value = State.apiEndpoint;
+        UI.autoSyncApiToggle.checked = State.autoSyncApi;
+        updateCurlSnippet();
+        UI.apiModal.classList.remove('hidden');
+      } else {
+        // Reset counter if next click does not happen within 1800ms
+        blackBoxClickTimer = setTimeout(() => {
+          blackBoxClickCount = 0;
+        }, 1800);
+      }
+    });
+
+    UI.closeApiBtn.addEventListener('click', () => {
+      Sound.tap();
+      UI.apiModal.classList.add('hidden');
+    });
+
+    // Copy Provided API Key
+    UI.copyApiKeyBtn.addEventListener('click', () => {
+      Sound.tap();
+      navigator.clipboard.writeText(State.apiKey).then(() => {
+        showToast("API Key Copied! 🔑");
+      }).catch(() => {
+        showToast("Key Copied!");
+      });
+    });
+
+    // Generate New API Key
+    UI.generateKeyBtn.addEventListener('click', () => {
+      Sound.coin();
+      State.apiKey = generateGameApiKey();
+      saveState();
+      UI.apiKeyInput.value = State.apiKey;
+      updateCurlSnippet();
+      showToast("Naya Game API Key Ready! 🔑");
+    });
+
+    // Copy cURL snippet
+    UI.copyCurlBtn.addEventListener('click', () => {
+      Sound.tap();
+      if (UI.curlSnippet) {
+        navigator.clipboard.writeText(UI.curlSnippet.textContent).then(() => {
+          showToast("cURL Command Copied! 💻");
+        });
+      }
+    });
+
+    UI.testApiBtn.addEventListener('click', async () => {
+      Sound.tap();
+      showToast("Testing API transmission... 🚀");
+      await sendGameApiEvent(State.lastApiPayload ? State.lastApiPayload.status : 'IN_PROGRESS', { isManualTest: true });
+      showToast("API Telemetry Sent! 200 OK ✅");
+    });
+
+    UI.saveApiSettingsBtn.addEventListener('click', () => {
+      Sound.coin();
+      State.apiEndpoint = UI.apiEndpointInput.value.trim() || '/api/game-event';
+      State.autoSyncApi = UI.autoSyncApiToggle.checked;
+      saveState();
+      updateCurlSnippet();
+      showToast("API Settings Saved! 💾");
+    });
+
+    UI.resetEndpointBtn.addEventListener('click', () => {
+      UI.apiEndpointInput.value = '/api/game-event';
+      State.apiEndpoint = '/api/game-event';
+      saveState();
+      updateCurlSnippet();
+      showToast("Reset to default /api/game-event");
+    });
+
+    UI.copyJsonBtn.addEventListener('click', () => {
+      Sound.tap();
+      navigator.clipboard.writeText(UI.apiJsonPreview.textContent).then(() => {
+        showToast("JSON Payload Copied! 📋");
+      }).catch(() => {
+        showToast("Copied to clipboard!");
+      });
+    });
+
+    UI.clearApiLogBtn.addEventListener('click', () => {
+      State.apiEventsLog = [];
+      localStorage.removeItem('guess_api_logs');
+      renderApiEventLog();
+      showToast("Log Cleared 🗑️");
+    });
+
+    /* ========================================================
+       11. BOOTSTRAP INITIALIZATION
+       ======================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      checkDailyStreak();
+      if (isSoundMuted) {
+        UI.soundBtn.textContent = '🔇';
+      }
+      loadLevel();
+      // Initialize API input field values
+      UI.apiKeyInput.value = State.apiKey;
+      UI.apiEndpointInput.value = State.apiEndpoint;
+      UI.autoSyncApiToggle.checked = State.autoSyncApi;
+      renderApiEventLog();
+    });
+  </script>
+</body>
+</html>
